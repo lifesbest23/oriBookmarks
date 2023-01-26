@@ -38,14 +38,14 @@ if book is None:
 
     if title is None:
         notify("No Title input, exiting")
-        db.db_exit()
+        db.db_close()
         sys.exit(1)
 
     author = rofi.requestInput("Book Author", db.db_get_book_authors())
 
     if author is None:
         notify("No Author input, exiting", 1000)
-        db.db_exit()
+        db.db_close()
         sys.exit(1)
 
     db.db_insert_book(filePath, title, author)
@@ -53,5 +53,5 @@ if book is None:
 else:
     notify("Book is already in db")
 
-db.db_exit()
+db.db_close()
 sys.exit(1)

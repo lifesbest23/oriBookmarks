@@ -1,6 +1,7 @@
 # script for storing origami bookmarks
 # class representing the database
 
+import errno
 import hashlib
 import json
 import logging
@@ -30,6 +31,33 @@ def get_hash(filePath) -> str:
     return hasher.hexdigest()
 
 
+class Book:
+    def __init__(self, filename, path, author="", hash="", title="", pages=0):
+        self.filename = filename
+        self.path = path
+        filePath = path + "/" + filename
+        if hash == "":
+            if os.path.isfile(filePath):
+                hash = get_hash(filePath)
+            else:
+                raise FileNotFoundError(errno.ENOENT,
+                                        os.strerror(errno.ENOENT), filename)
+        self.author = author
+        self.title = title
+        self.hash = hash
+        self.pages = pages
+        self.id = -1
+
+    def getFromFilePath(filePath):
+        (path, filename) = os.path.split(filePath)
+
+        return Book(filename, path)
+
+    def setId(self, id: int):
+        if (id > 0):
+            self.id = id
+
+
 class BookmarkDB:
 
     def __init__(self, path: str = "/home/lucas/tmp/bookmark-tests/"):
@@ -47,7 +75,7 @@ class BookmarkDB:
                 id integer primary key,
                 page integer,
                 modelname text,
-                author text,
+                designer text,
                 papersize integer default 0,
                 stepcount integer default 0,
                 difficulty integer default 0,
@@ -59,12 +87,12 @@ class BookmarkDB:
         # Create the books table if it doesn't exist
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS books (
-                id integer primary key,
-                path text,
+                filename text,
                 title text,
                 author text,
                 pages integer,
-                hash blob
+                hash blob primary key,
+                path text
             )''')
 
         self.db_retreive_books()
@@ -78,12 +106,12 @@ class BookmarkDB:
         self.books = []
         for row in rows:
             book = {
-                "id": row[0],
-                "filename": row[1],
-                "title": row[2],
-                "author": row[3],
-                "pages": row[4],
-                "hash": row[5]
+                "filename": row[0],
+                "title": row[1],
+                "author": row[2],
+                "pages": row[3],
+                "hash": row[4],
+                "path": row[5]
             }
             self.logger.debug("Found Book: %s", str(book))
             self.books.append(book)
@@ -99,7 +127,7 @@ class BookmarkDB:
                 "id": row[0],
                 "page": row[1],
                 "modelname": row[2],
-                "author": row[3],
+                "designer": row[3],
                 "papersize": row[4],
                 "stepcount": row[5],
                 "difficulty": row[6],
@@ -124,17 +152,43 @@ class BookmarkDB:
         return next_matching_book
 
     def db_insert_book(self, path, title, author):
-        (_, path) = os.path.split(path)
         hash = get_hash(path)
+        (path, filename) = os.path.split(path)
 
         pages = 100
         # Insert the current page, path, title, and author into the bookmarks table
-        self.conn.execute('''
-                INSERT INTO books (path, title, author, pages, hash)
-                          VALUES (?, ?, ?, ?, ?)''',
-                          (path, title, author, pages, hash))
+        self.cursor.execute('''
+                INSERT OR REPLACE INTO books (filename, title, author, pages, hash, path)
+                          VALUES (?, ?, ?, ?, ?, ?)''',
+                            (filename, title, author, pages, hash, path))
 
-    def db_exit(self):
+    def db_get_designers(self) -> list:
+        self.cursor.execute('''SELECT DISTINCT (designer) FROM bookmarks''')
+
+        return self.cursor.fetchall()
+
+    def db_get_sizes(self) -> list:
+        self.cursor.execute('''SELECT DISTINCT (papersize) FROM bookmarks''')
+
+        return self.cursor.fetchall()
+
+    def db_get_bookmarks(self, bookid: int) -> list | None:
+        book = next((book for book in self.books if book["id"] == bookid))
+        if book is None:
+            return None
+
+        bookmarks = (mark for mark in self.bookmarks if mark["bookid"] == bookid)
+        return bookmarks
+
+    def db_has_bookmark(self, bookid: int, page: int) -> dict | None:
+        marks = self.db_get_bookmarks(bookid)
+        if marks is None:
+            return None
+
+        existing_mark = next(mark for mark in marks if mark["page"] == page)
+        return existing_mark
+
+    def db_close(self):
         # Save the changes
         self.conn.commit()
 
