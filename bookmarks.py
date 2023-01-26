@@ -172,12 +172,12 @@ class BookmarkDB:
 
         return self.cursor.fetchall()
 
-    def db_get_bookmarks(self, bookid: int) -> list | None:
-        book = next((book for book in self.books if book["id"] == bookid))
+    def db_get_bookmarks(self, bhash: int) -> list | None:
+        book = next((book for book in self.books if book["hash"] == bhash))
         if book is None:
             return None
 
-        bookmarks = (mark for mark in self.bookmarks if mark["bookid"] == bookid)
+        bookmarks = (mark for mark in self.bookmarks if mark["bookid"] == bhash)
         return bookmarks
 
     def db_has_bookmark(self, bookid: int, page: int) -> dict | None:
@@ -187,6 +187,27 @@ class BookmarkDB:
 
         existing_mark = next(mark for mark in marks if mark["page"] == page)
         return existing_mark
+
+    def db_insert_bookmark(self, mark: dict):
+        try:
+            args = (mark["page"], mark["modelname"], mark["designer"],
+                    mark["papersize"], mark["stepcount"], mark["difficulty"],
+                    mark["importance"], mark["notes"], mark["bookid"])
+            self.cursor.execute('''
+                INSERT OR REPLACE INTO bookmarks
+                (
+                    page,
+                    modelname,
+                    designer,
+                    papersize,
+                    stepcount,
+                    difficult,
+                    importance,
+                    notes,
+                    bookid
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', args)
+        except Exception:
+            self.logger.warn("Error getting mark arguments for insert")
 
     def db_close(self):
         # Save the changes
