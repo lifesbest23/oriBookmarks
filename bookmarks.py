@@ -16,7 +16,6 @@ import sys
 # Exposes all Book names
 # Exposes all Creator Names
 
-
 DB_NAME = "myOrigamiBookmarks.db"
 
 
@@ -32,6 +31,7 @@ def get_hash(filePath) -> str:
 
 
 class Book:
+
     def __init__(self, filename, path, author="", hash="", title="", pages=0):
         self.filename = filename
         self.path = path
@@ -145,10 +145,9 @@ class BookmarkDB:
         hash = get_hash(path)
 
         next_matching_book = next(
-            (book for book in self.books if book["hash"] == hash),
-            None)
-        self.logger.debug("Found book %s in db: %s",
-                          path, str(next_matching_book))
+            (book for book in self.books if book["hash"] == hash), None)
+        self.logger.debug("Found book %s in db: %s", path,
+                          str(next_matching_book))
         return next_matching_book
 
     def db_insert_book(self, path, title, author):
@@ -157,10 +156,11 @@ class BookmarkDB:
 
         pages = 100
         # Insert the current page, path, title, and author into the bookmarks table
-        self.cursor.execute('''
+        self.cursor.execute(
+            '''
                 INSERT OR REPLACE INTO books (filename, title, author, pages, hash, path)
                           VALUES (?, ?, ?, ?, ?, ?)''',
-                            (filename, title, author, pages, hash, path))
+            (filename, title, author, pages, hash, path))
 
     def db_get_designers(self) -> list:
         self.cursor.execute('''SELECT DISTINCT (designer) FROM bookmarks''')
@@ -177,7 +177,8 @@ class BookmarkDB:
         if book is None:
             return None
 
-        bookmarks = (mark for mark in self.bookmarks if mark["bookid"] == bhash)
+        bookmarks = (mark for mark in self.bookmarks
+                     if mark["bookid"] == bhash)
         return bookmarks
 
     def db_has_bookmark(self, bookid: int, page: int) -> dict | None:
@@ -193,7 +194,8 @@ class BookmarkDB:
             args = (mark["page"], mark["modelname"], mark["designer"],
                     mark["papersize"], mark["stepcount"], mark["difficulty"],
                     mark["importance"], mark["notes"], mark["bookid"])
-            self.cursor.execute('''
+            self.cursor.execute(
+                '''
                 INSERT OR REPLACE INTO bookmarks
                 (
                     page,

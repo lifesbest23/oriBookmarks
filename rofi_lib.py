@@ -12,6 +12,7 @@ class Rofi:
     """Reusable rofi Prompter with persistent settings
 
     The different request* functions open rofi with specific settings."""
+
     # ToDo: init
     # - more functions
     #   - one for requesting and returning a default if no input was given
@@ -44,8 +45,8 @@ class Rofi:
 
         return (ret, exit_code)
 
-    def requestInput(self, text, options: list):
-        args = self.getRofiCommand(["-p", text])
+    def requestInput(self, text, options: list, selected_row: int = 0):
+        args = self.getRofiCommand(["-p", text, "-selected-row", str(selected_row)])
 
         (ret, exit_code) = self.runRofi(args, options)
         if ret == "":
@@ -55,8 +56,17 @@ class Rofi:
 
         return ret
 
-    def askOptions(self, text, options=["yes", "no"], message=None, default_select=1) -> str:
-        args = self.getRofiCommand(["-p", text, "-no-fixed-num-lines", "-no-custom", ])
+    def askOptions(self,
+                   text,
+                   options=["yes", "no"],
+                   message=None,
+                   default_select=1) -> str:
+        args = self.getRofiCommand([
+            "-p",
+            text,
+            "-no-fixed-num-lines",
+            "-no-custom",
+        ])
         args.extend(["-selected-row", str(default_select)])
 
         if message:
@@ -72,7 +82,7 @@ class Rofi:
 if __name__ == "__main__":
     opts = ["Line1", "Line2", "Line3"]
     rofiPrompter = Rofi()
-    ret = rofiPrompter.requestInput("Select some line", opts)
+    ret = rofiPrompter.requestInput("Select some line", opts, selected_row=1)
     print(f"The return value was {ret}")
 
     print("Asking yes/no prompt with rofi")

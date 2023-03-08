@@ -30,18 +30,28 @@ pdfPage = sys.argv[2]
 db = BookmarkDB(BM_DIR)
 rofi = Rofi()
 
-book = db.db_get_book(filePath)
-if book is None:
-    notify("Book is not in db", 1000)
 
-    title = rofi.requestInput("Book Title", [filename.split(".", 1)[0]])
+def book_input(book: dict = None):
+    title_array = [filename.split(".", 1)[0]]
+    author_array = db.get_book_authors()
+    if book:
+        title_array.append(book["title"])
+        title_row = len(title_array)
+        author_array.append(book["author"])
+        author_row = len(author_array)
+
+    title = rofi.requestInput("Book Title",
+                              title_array,
+                              selected_row=title_row)
 
     if title is None:
         notify("No Title input, exiting")
         db.db_close()
         sys.exit(1)
 
-    author = rofi.requestInput("Book Author", db.db_get_book_authors())
+    author = rofi.requestInput("Book Author",
+                               author_array,
+                               selected_row=author_row)
 
     if author is None:
         notify("No Author input, exiting", 1000)
@@ -50,8 +60,18 @@ if book is None:
 
     db.db_insert_book(filePath, title, author)
     notify(f"Put {title} by {author} into book db", 1800)
+
+
+book = db.db_get_book(filePath)
+if book:
+    if rofi.askOptions("Edit Book name, or author?",
+                       message=f"{book['title']} ({book['author']})") == "yes":
+        book_input(book)
+    else:
+        notify("Book is already in db")
 else:
-    notify("Book is already in db")
+    notify("Book is not in db", 1000)
+    book_input()
 
 db.db_close()
 sys.exit(1)
