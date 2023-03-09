@@ -50,17 +50,16 @@ class Book:
         self.pdfhash = get_hash(self.filepath)
         self.pages = 10
 
-
-# id integer primary key,
-# page integer,
-# modelname text,
-# designer text,
-# papersize integer default 0,
-# stepcount integer default 0,
-# difficulty integer default 0,
-# importance integer default 0,
-# notes text default "",
-# bookid integer
+@dataclass
+class OrigamiModel:
+    page: int
+    modelname: str
+    designer: str
+    papersize: str
+    stepcount: int = -1
+    difficulty: int = -1
+    importance: int = -1
+    notes: str = ""
 
 
 class BookmarkDB:
