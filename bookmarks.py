@@ -139,7 +139,7 @@ class BookmarkDB:
             self.bookmarks.append(bookmark)
 
     def db_get_book_authors(self) -> list[str]:
-        return set([book["author"] for book in self.books])
+        return list([book["author"] for book in self.books])
 
     def db_get_book(self, path) -> dict | None:
         hash = get_hash(path)
@@ -173,7 +173,7 @@ class BookmarkDB:
         return self.cursor.fetchall()
 
     def db_get_bookmarks(self, bhash: int) -> list | None:
-        book = next((book for book in self.books if book["hash"] == bhash))
+        book = next((book for book in self.books if book["hash"] == bhash), None)
         if book is None:
             return None
 
@@ -181,12 +181,13 @@ class BookmarkDB:
                      if mark["bookid"] == bhash)
         return bookmarks
 
-    def db_has_bookmark(self, bookid: int, page: int) -> dict | None:
-        marks = self.db_get_bookmarks(bookid)
+    def db_has_bookmark(self, bhash: int, page: int) -> dict | None:
+        marks = self.db_get_bookmarks(bhash)
         if marks is None:
             return None
 
-        existing_mark = next(mark for mark in marks if mark["page"] == page)
+        print(marks)
+        existing_mark = next((mark for mark in marks if mark["page"] == page), None)
         return existing_mark
 
     def db_insert_bookmark(self, mark: dict):
