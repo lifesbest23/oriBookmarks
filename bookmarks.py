@@ -86,6 +86,7 @@ class BookmarkDB:
         self.logger = logging.getLogger("DB")
         self.logger.setLevel(logging.DEBUG)
 
+        self.books = list()
         self.path = path + DB_NAME
         # load from file into list of Books
         data = None
@@ -119,7 +120,7 @@ class BookmarkDB:
         return list(b.author for b in self.books)
 
     def db_insert_book(self, book: Book):
-        old = self.get_book(book.path)
+        old = self.get_book(book.filepath)
         if old:
             self.books.remove(old)
 
