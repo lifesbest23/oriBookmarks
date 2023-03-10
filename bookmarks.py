@@ -1,16 +1,11 @@
 # script for storing origami bookmarks
 # class representing the database
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-import errno
 import hashlib
 import json
 import logging
 import os
-import shlex
-import sqlite3
-import subprocess
-import sys
 
 # Create a Database class
 # Exposes all author names
@@ -32,12 +27,25 @@ def get_hash(filePath) -> str:
 
 
 @dataclass
+class OrigamiModel:
+    page: int
+    modelname: str
+    designer: str
+    papersize: int
+    stepcount: int = -1
+    difficulty: int = -1
+    importance: int = -1
+    notes: str = None
+
+
+@dataclass
 class Book:
     title: str
     author: str
     filepath: str
     pdfhash: str = ""
     pages: int = -1
+    models: list[OrigamiModel] = field(default_factory=list)
 
     def __post_init__(self):
         if self.pdfhash:
@@ -50,16 +58,9 @@ class Book:
         self.pdfhash = get_hash(self.filepath)
         self.pages = 10
 
-@dataclass
-class OrigamiModel:
-    page: int
-    modelname: str
-    designer: str
-    papersize: str
-    stepcount: int = -1
-    difficulty: int = -1
-    importance: int = -1
-    notes: str = ""
+    def add_model(self, model: OrigamiModel):
+        self.models.append(model)
+        self.models.sort(key=lambda x: x.page)
 
 
 class BookmarkDB:
