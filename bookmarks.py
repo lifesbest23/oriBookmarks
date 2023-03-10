@@ -1,6 +1,6 @@
 # script for storing origami bookmarks
 # class representing the database
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 
 import hashlib
 import json
@@ -58,67 +58,83 @@ class Book:
         self.pdfhash = get_hash(self.filepath)
         self.pages = 10
 
+    def get_last_model(self) -> OrigamiModel | None:
+        if self.models:
+            return self.models[-1]
+        return None
+
+    def get_model(self, page: int) -> OrigamiModel | None:
+        next_matching_model = next(
+            (model for model in self.models if model.page == page), None)
+        return next_matching_model
+
     def add_model(self, model: OrigamiModel):
+        old = self.get_model(model.page)
+        if old:
+            self.models.remove(old)
+
         self.models.append(model)
-        self.models.sort(key=lambda x: x.page)
+
+    def get_sorted_models(self) -> list[OrigamiModel]:
+        return sorted(self.models, key=lambda x: x.page)
 
 
 class BookmarkDB:
+    books: list[Book]
 
     def __init__(self, path: str = "/home/lucas/tmp/bookmark-tests/"):
         self.logger = logging.getLogger("DB")
         self.logger.setLevel(logging.DEBUG)
 
         self.path = path + DB_NAME
+        # load from file into list of Books
+        data = None
+        with open(self.path, "r") as json_file:
+            data = json.load(json_file)
 
-    def db_get_book_authors(self) -> list[str]:
-        return list([book["author"] for book in self.books])
+        if data is None:
+            self.log.warn(f"Json DB file {self.path} could not be read")
+            data = {}
 
-    def db_get_book(self, path) -> dict | None:
-        hash = get_hash(path)
+        for b in data:
+            model_list = b.pop("models")
+            models = [OrigamiModel(**model_data) for model_data in model_list]
+            self.books.append(Book(models=models, **b))
+
+    def db_save(self):
+        with open(self.path, "w") as json_file:
+            json.dump([asdict(book) for book in self.books], json_file)
+            self.logger.debug(f"Saved json db to {self.path}")
+
+    def get_book(self, path) -> Book | None:
+        hash_t = get_hash(path)
 
         next_matching_book = next(
-            (book for book in self.books if book["hash"] == hash), None)
+            (book for book in self.books if book.pdfhash == hash_t), None)
         self.logger.debug("Found book %s in db: %s", path,
                           str(next_matching_book))
         return next_matching_book
 
-    def db_insert_book(self, path, title, author):
-        pass
-        # Insert the current page, path, title, and author into the bookmarks table
+    def db_get_book_authors(self) -> list[str]:
+        return list(b.author for b in self.books)
 
-    def db_get_designers(self) -> list:
-        self.cursor.execute('''SELECT DISTINCT (designer) FROM bookmarks''')
+    def db_insert_book(self, book: Book):
+        old = self.get_book(book.path)
+        if old:
+            self.books.remove(old)
 
-        return self.cursor.fetchall()
+        self.books.append(book)
 
-    def db_get_sizes(self) -> list:
-        self.cursor.execute('''SELECT DISTINCT (papersize) FROM bookmarks''')
+    def db_get_designers(self) -> list[str]:
+        designers = []
+        for book in self.books:
+            for model in book.models:
+                designers.append(model.designer)
+        return designers
 
-        return self.cursor.fetchall()
-
-    def db_get_bookmarks(self, bhash: int) -> list | None:
-        book = next((book for book in self.books if book["hash"] == bhash),
-                    None)
-        if book is None:
-            return None
-
-        bookmarks = (mark for mark in self.bookmarks
-                     if mark["bookid"] == bhash)
-        return bookmarks
-
-    def db_has_bookmark(self, bhash: int, page: int) -> dict | None:
-        marks = self.db_get_bookmarks(bhash)
-        if marks is None:
-            return None
-
-        print(marks)
-        existing_mark = next((mark for mark in marks if mark["page"] == page),
-                             None)
-        return existing_mark
-
-    def db_insert_bookmark(self, mark: dict):
-        pass
-
-    def db_close(self):
-        pass
+    def db_get_sizes(self) -> list[int]:
+        sizes = []
+        for book in self.books:
+            for model in book.models:
+                sizes.append(model.size)
+        return sizes
