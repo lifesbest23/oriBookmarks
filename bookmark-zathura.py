@@ -9,7 +9,6 @@ import sys
 from bookmarks import BookmarkDB, Book, OrigamiModel
 from rofi_lib import Rofi, notify
 
-
 BM_DIR = "/home/lucas/tmp/bookmark-tests/"
 
 # parse command line arguments
@@ -62,14 +61,17 @@ def book_input(book: Book = None):
     if author is None:
         notify_quit("No Author input, exiting", 1000)
 
-    new_book = Book(title, author, filepath)
-    db.db_insert_book(new_book)
+    if book:
+        book.title = title
+        book.author = author
+    else:
+        book = Book(title, author, filepath)
     notify(f"Put {title} by {author} into book db", 1800)
 
-    return new_book
+    return book
 
 
-def bookmark_input(page: int, book: Book):
+def bookmark_input(page: int, model: OrigamiModel):
     modelname = rofi.requestInput("Model Name", [])
     if modelname is None:
         notify("Not Model Name input, exiting")
@@ -94,24 +96,46 @@ def bookmark_input(page: int, book: Book):
     return new_model
 
 
-book = db.get_book(filepath)
-if book:
-    if rofi.askOptions("Edit Book name, or author?",
-                       message=f"{book.title} ({book.author})") == "yes":
-        book_input(book)
-    else:
-        notify("Book is already in db")
-else:
-    notify("Book is not in db", 1000)
-    book_input()
+bookmark_opts = ["Add/Edit Bookmark"]
 
 book = db.get_book(filepath)
-bm = book.get_model(pdfPage)
-if not bm:
-    bm = bookmark_input(pdfPage, book)
-    book.add_model(bm)
+if not book:
+    notify("Book is not in db", 1000)
+    book = book_input()
+    db.db_insert_book(book)
 else:
-    notify("Bookmark already present")
+    bookmark_opts.append("Edit Book")
+
+book = db.get_book(filepath)
+if len(book.models) > 0:
+    bookmark_opts.append("Add ending to last model")
+    bookmark_opts.append("Show Bookmarks")
+
+function = rofi.askOptions("Bookmarking function",
+                           message=f"What subfunction to run",
+                           options=bookmark_opts)
+
+if function == "Edit Book":
+    book = book_input(book)
+if function == "Add/Edit Bookmark":
+    bm = book.get_model(pdfPage)
+    if not bm:
+        bm = bookmark_input(pdfPage, book)
+        book.add_model(bm)
+    else:
+        notify("Bookmark already present")
+if function == "Add ending to last model":
+    if book.get_last_model().lastpage == -1:
+        book.get_last_model().lastpage = pdfPage
+        notify("Added last Page of last model")
+    else:
+        notify("Last Page of model was already set!")
+if function == "Show Bookmarks":
+    options = [
+        f"P{model.page} {model.modelname} by {model.designer}"
+        for model in book.get_sorted_models()
+    ]
+    rofi.askOptions("Models list", options=options)
 
 db.db_insert_book(book)
 db.db_save()

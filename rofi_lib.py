@@ -22,7 +22,7 @@ class Rofi:
     #   - one for receiving already present text and returning an edited string
     # - add setting for exit on cancel rofi with esc
 
-    def getRofiCommand(self, lines=10, additional_options=[]):
+    def getRofiCommand(self, additional_options=[], lines=10):
         rofi_command = ['rofi', '-dmenu']
         rofi_command += ['-lines', f"{lines}", '-i']
         additional_options.extend(['-sep', '\\0'])
@@ -47,7 +47,7 @@ class Rofi:
 
     def requestInput(self, text, options: list, selected_row: int = 0):
         args = self.getRofiCommand(
-            ["-p", text, "-selected-row",
+            ["-p", str(text), "-selected-row",
              str(selected_row)])
 
         (ret, exit_code) = self.runRofi(args, options)
@@ -82,7 +82,7 @@ class Rofi:
                 notify("Input was not an integer")
                 return False
 
-        args = self.getRofiCommand(0, ["-p", text])
+        args = self.getRofiCommand(["-p", text])
         if message:
             args.extend(["-mesg", message])
 
