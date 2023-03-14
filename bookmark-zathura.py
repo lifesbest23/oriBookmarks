@@ -9,6 +9,7 @@ import sys
 from bookmarks import BookmarkDB, Book, OrigamiModel
 from rofi_lib import Rofi, notify
 
+
 BM_DIR = "/home/lucas/tmp/bookmark-tests/"
 
 # parse command line arguments
@@ -69,7 +70,6 @@ def book_input(book: Book = None):
 
 
 def bookmark_input(page: int, book: Book):
-
     modelname = rofi.requestInput("Model Name", [])
     if modelname is None:
         notify("Not Model Name input, exiting")

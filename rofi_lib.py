@@ -22,9 +22,9 @@ class Rofi:
     #   - one for receiving already present text and returning an edited string
     # - add setting for exit on cancel rofi with esc
 
-    def getRofiCommand(self, additional_options=[]):
+    def getRofiCommand(self, lines=10, additional_options=[]):
         rofi_command = ['rofi', '-dmenu']
-        rofi_command += ['-lines', '10', '-i']
+        rofi_command += ['-lines', f"{lines}", '-i']
         additional_options.extend(['-sep', '\\0'])
         return rofi_command + additional_options
 
@@ -46,7 +46,9 @@ class Rofi:
         return (ret, exit_code)
 
     def requestInput(self, text, options: list, selected_row: int = 0):
-        args = self.getRofiCommand(["-p", text, "-selected-row", str(selected_row)])
+        args = self.getRofiCommand(
+            ["-p", text, "-selected-row",
+             str(selected_row)])
 
         (ret, exit_code) = self.runRofi(args, options)
         if ret == "":
@@ -55,6 +57,42 @@ class Rofi:
         ret = ret.split("\n", 1)[0]
 
         return ret
+
+    def requestInteger(self,
+                       text,
+                       maxV=None,
+                       minV=None,
+                       message=None) -> int | None:
+
+        if maxV and minV and minV >= maxV:
+            raise ValueError(
+                f"Intger request not possible as maxV({maxV})<minV({minV}).")
+
+        def validate(value) -> bool:
+            try:
+                value = int(value)
+                if maxV and value > maxV:
+                    notify("Input was too big")
+                    return False
+                if minV and value < minV:
+                    notify("Input was too small")
+                    return False
+                return True
+            except ValueError:
+                notify("Input was not an integer")
+                return False
+
+        args = self.getRofiCommand(0, ["-p", text])
+        if message:
+            args.extend(["-mesg", message])
+
+        while True:
+            (val, exit_code) = self.runRofi(args, [])
+            if val == "":
+                return None
+
+            if validate(val):
+                return int(val)
 
     def askOptions(self,
                    text,
@@ -89,3 +127,9 @@ if __name__ == "__main__":
     ret = rofiPrompter.askOptions("Continue?", message="Test message")
 
     print(f"The return value was {ret}")
+
+    ret = rofiPrompter.requestInteger("integer",
+                                      maxV=100,
+                                      minV=-10,
+                                      message="Between -10 and 100")
+    print(f"The Intger returned was {ret}")
