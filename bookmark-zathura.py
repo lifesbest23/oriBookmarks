@@ -31,6 +31,11 @@ db = BookmarkDB(BM_DIR)
 rofi = Rofi()
 
 
+def notify_quit(msg):
+    notify(msg)
+    sys.exit(1)
+
+
 def book_input(book: Book = None):
     title_array = [filename.split(".", 1)[0]]
     author_array = db.db_get_book_authors()
@@ -47,18 +52,14 @@ def book_input(book: Book = None):
                               selected_row=title_row)
 
     if title is None:
-        notify("No Title input, exiting")
-        db.db_close()
-        sys.exit(1)
+        notify_quit("No Title input, exiting")
 
     author = rofi.requestInput("Book Author",
                                author_array,
                                selected_row=author_row)
 
     if author is None:
-        notify("No Author input, exiting", 1000)
-        db.db_close()
-        sys.exit(1)
+        notify_quit("No Author input, exiting", 1000)
 
     new_book = Book(title, author, filepath)
     db.db_insert_book(new_book)
@@ -72,21 +73,15 @@ def bookmark_input(page: int, book: Book):
     modelname = rofi.requestInput("Model Name", [])
     if modelname is None:
         notify("Not Model Name input, exiting")
-        db.db_close()
-        sys.exit(1)
 
     designer_array = db.db_get_book_authors() + db.db_get_designers()
     designer = rofi.requestInput("Designer", designer_array)
     if designer is None:
-        notify("Not Designer Name input, exiting")
-        db.db_close()
-        sys.exit(1)
+        notify_quit("Not Designer Name input, exiting")
 
     papersize = rofi.requestInput("Paper Size", db.db_get_sizes())
     if papersize is None:
-        notify("Not papersize input, exiting")
-        db.db_close()
-        sys.exit(1)
+        notify_quit("Not papersize input, exiting")
 
     params = dict()
     for field in ["stepcount", "difficulty", "importance", "notes"]:
@@ -120,4 +115,4 @@ else:
 
 db.db_insert_book(book)
 db.db_save()
-sys.exit(1)
+notify_quit("Exiting properly")
