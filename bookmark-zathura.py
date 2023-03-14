@@ -9,7 +9,7 @@ import sys
 from bookmarks import BookmarkDB, Book, OrigamiModel
 from rofi_lib import Rofi, notify
 
-BM_DIR = "/home/lucas/tmp/bookmark-tests/"
+BM_DIR = os.path.expanduser("~/tmp/bookmark-tests/")
 
 # parse command line arguments
 if (len(sys.argv) < 3):
@@ -74,16 +74,16 @@ def book_input(book: Book = None):
 def bookmark_input(page: int, model: OrigamiModel):
     modelname = rofi.requestInput("Model Name", [])
     if modelname is None:
-        notify("Not Model Name input, exiting")
+        notify("No Model Name input, exiting")
 
     designer_array = db.db_get_book_authors() + db.db_get_designers()
     designer = rofi.requestInput("Designer", designer_array)
     if designer is None:
-        notify_quit("Not Designer Name input, exiting")
+        notify_quit("No Designer Name input, exiting")
 
     papersize = rofi.requestInput("Paper Size", db.db_get_sizes())
     if papersize is None:
-        notify_quit("Not papersize input, exiting")
+        notify_quit("No papersize input, exiting")
 
     params = dict()
     for field in ["stepcount", "difficulty", "importance", "notes"]:
@@ -125,7 +125,8 @@ if function == "Add/Edit Bookmark":
     else:
         notify("Bookmark already present")
 if function == "Add ending to last model":
-    if book.get_last_model().lastpage == -1:
+    if not book.get_last_model().lastpage or \
+            book.get_last_model().lastpage == -1:
         book.get_last_model().lastpage = pdfPage
         notify("Added last Page of last model")
     else:

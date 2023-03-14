@@ -32,6 +32,7 @@ class OrigamiModel:
     modelname: str
     designer: str
     papersize: int
+    lastpage: int = -1
     stepcount: int = -1
     difficulty: int = -1
     importance: int = -1
